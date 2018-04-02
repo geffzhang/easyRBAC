@@ -2,14 +2,14 @@
   div
     el-col(:span="6")
         search-lst(:searchFun="getApps",placeholder="应用名/code",@itemClick="itemClickHandler")
-            template(scope="props")
+            template(slot-scope="props")
                 | {{props.item.appName}}
     el-col(:span="12").tree-container
         el-tree(:data="resourceTree",
                 :props="defaultProps",
                 node-key="id",show-checkbox,default-expand-all,
                 :render-content="renderContent"
-                :check-strictly="true",ref="tree",@node-click="")
+                :check-strictly="true",ref="tree",@node-click="",class="my-tree")
         .buttons(v-if="!readOnly")
             el-button(type="success",@click="saveHandler") 保存
             el-button(@click="reset") 还原
@@ -128,5 +128,9 @@ export default {
 .tree-container {
     
     margin-top: 10px;
+}
+
+.my-tree .el-tree-node__content{
+    height: 35px;
 }
 </style>
