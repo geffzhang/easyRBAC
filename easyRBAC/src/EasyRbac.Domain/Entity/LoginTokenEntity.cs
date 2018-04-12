@@ -16,9 +16,22 @@ namespace EasyRbac.Domain.Entity
 
         public int ExpireIn { get; set; }
 
+        public string AppCode { get; set; }
+
         public bool IsExpire()
         {
             return this.CreateOn.AddSeconds(this.ExpireIn) < DateTime.Now;
+        }
+
+        public static LoginTokenEntity NewLoginToken(UserEntity user, int expireIn,string appCode)
+        {
+            var loginToken = new LoginTokenEntity();
+            loginToken.CreateOn = DateTime.Now;
+            loginToken.UserId = user.Id;
+            loginToken.Token = $"{user.AccountType}-{user.Id}-{loginToken.CreateOn:MMddHHmmss}-{Guid.NewGuid():N}";
+            loginToken.ExpireIn = expireIn;
+            loginToken.AppCode = appCode;
+            return loginToken;
         }
     }
 }

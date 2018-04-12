@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using EasyRbac.Application.Application;
 using EasyRbac.Application.Login;
 using EasyRbac.Application.User;
 using EasyRbac.Domain.Entity;
 using EasyRbac.Dto.Application;
-using EasyRbac.Dto.AppLogin;
 using EasyRbac.Dto.AppResource;
 using EasyRbac.Dto.Exceptions;
 using EasyRbac.Dto.User;
@@ -21,19 +21,13 @@ namespace EasyRbac.Web.Controllers.SsoApi
     {
         private readonly ILoginService _loginService;
         private readonly IUserService _userService;
-        
+        private readonly IApplicationService _applicationService;
 
-        public AppLoginController(ILoginService loginService, IUserService userService)
+        public AppLoginController(ILoginService loginService, IUserService userService,IApplicationService applicationService)
         {
             this._loginService = loginService;
             this._userService = userService;
-        }
-
-        [HttpPost("appLogin")]
-        public async Task<AppLoginResult> AppLogin([FromBody]AppLoginDto dto)
-        {
-            var result = await this._loginService.AppLoginAsync(dto);
-            return result;
+            this._applicationService = applicationService;
         }
 
         [HttpGet("app/user/{userToken}")]
@@ -55,11 +49,13 @@ namespace EasyRbac.Web.Controllers.SsoApi
             var result = await this._loginService.GetUserAppResourcesAsync(userId, appId);
             result = result.ToToMultiTree(x => x.Id, x => x.Id.Substring(0, x.Id.Length - 2));
             return result;
-        }      
+        }
 
         private async Task<(long, long)> GetBaseInfo(string userToken)
         {
             LoginTokenEntity userTokenEntity = await this._loginService.GetTokenEntityByTokenAsync(userToken);
+            var identity = this.User.Identity as UserIdentity;
+            var appInfo = await this._applicationService.GetAppByUserId(identity.UserId);
             
             //TODO:需要加上
             //if (userTokenEntity.IsExpire())
@@ -67,9 +63,9 @@ namespace EasyRbac.Web.Controllers.SsoApi
             //    throw new EasyRbacException("token expired");
             //}
 
-            var identity = this.User.Identity as ApplicationIdentity;
+            
            
-            return (userTokenEntity.UserId,identity.App.Id);
+            return (userTokenEntity.UserId,appInfo.Id);
         }
     }
 }

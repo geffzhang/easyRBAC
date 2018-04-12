@@ -51,18 +51,9 @@ namespace EasyRbac.Web.Controllers
             return this._applicationService.DisableApp(id);
         }
 
-        [ResourceTag("GetAppSecret")]
-        [HttpGet("appSecret/{appId}")]
-        public Task<string> GetAppSecret(long appId)
+        public Task<string> ChangeAppSecuret(long id)
         {
-            return this._applicationService.GetAppScretAsync(appId);
-        }
-
-        [ResourceTag("ChangeAppSecret")]
-        [HttpPut("appSecret/{appId}")]
-        public Task ChangeAppSecret(long appId)
-        {
-            return this._applicationService.EditAppScretAsync(appId);
+            return this._applicationService.ChangeAppSecuretAsync(id);
         }
     }
 }

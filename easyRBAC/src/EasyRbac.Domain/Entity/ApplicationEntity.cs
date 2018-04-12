@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using EasyRbac.Domain.Enums;
+using MyUtility.Commons.Encrypt;
 using SQLinq;
 
 namespace EasyRbac.Domain.Entity
@@ -22,11 +23,19 @@ namespace EasyRbac.Domain.Entity
 
         public string CallbackUrl { get; set; }
 
-        public string AppScret { get; set; }
-
-        public CallbackType CallbackType { get; set; }
+        public CallbackType? CallbackType { get; set; }
 
         [SQLinqColumn(Ignore = true)]
         public List<AppResourceEntity> AppResouce { get; set; }
+
+        public long AppUserId { get; set; }
+
+        [SQLinqColumn(Ignore =true)]
+        public UserEntity Account { get; set; }
+
+        public void ChangeSecuret(string newPassword, IEncryptHelper encryptHelper)
+        {
+            this.Account.ChangePassword(newPassword, encryptHelper);
+        }
     }
 }

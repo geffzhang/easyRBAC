@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 using AutoMapper;
 using EasyRbac.Domain.Entity;
 using EasyRbac.Dto;
@@ -20,30 +21,42 @@ namespace EasyRbac.Application.Application
         private readonly IMapper _mapper;
         private readonly IIdGenerator _idGenerator;
         private readonly IEncryptHelper _encryptHelper;
+        private readonly IRepository<UserEntity> _userRepository;
 
-        public ApplicationService(IApplicationRepository appRepository, IIdGenerator idGenerator, IMapper mapper, IEncryptHelper encryptHelper)
+        public ApplicationService(IApplicationRepository appRepository, IIdGenerator idGenerator, IMapper mapper, IEncryptHelper encryptHelper,IRepository<UserEntity> userRepository)
         {
             this._appRepository = appRepository;
             this._idGenerator = idGenerator;
             this._mapper = mapper;
             this._encryptHelper = encryptHelper;
+            this._userRepository = userRepository;
         }
 
-        public Task DisableApp(long id)
+        public async Task DisableApp(long id)
         {
-            return this._appRepository.UpdateAsync(
-                () => new ApplicationEntity()
+            using (var tran = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+            {
+                var app = await this._appRepository.QueryFirstAsync(x => x.Id == id);
+
+                await this._appRepository.UpdateAsync(
+                    () => new ApplicationEntity()
+                    {
+                        Enable = false
+                    },
+                    x => x.Id == id);
+                await this._userRepository.UpdateAsync(() => new UserEntity
                 {
                     Enable = false
-                },
-                x => x.Id == id);
+                }, x => x.Id == app.AppUserId);
+            }                 
         }
 
         public Task EditAsync(long id, ApplicationInfoDto value)
         {
+
             return this._appRepository.UpdateAsync(() => new ApplicationEntity
             {
-                AppName =  value.AppName,
+                AppName = value.AppName,
                 AppCode = value.AppCode,
                 Descript = value.Descript,
                 CallbackUrl = value.CallbackUrl
@@ -53,16 +66,25 @@ namespace EasyRbac.Application.Application
         public async Task<ApplicationInfoDto> AddAppAsync(ApplicationInfoDto app)
         {
             var applicationEntity = this._mapper.Map<ApplicationEntity>(app);
+
+            var pwd = this._encryptHelper.GenerateSalt(10);
+
+            var userEntity = UserEntity.NewUser(this._idGenerator.NewId(), app.AppCode, pwd, app.AppName, this._encryptHelper);
+            userEntity.AccountType = Domain.Enums.AccountType.Application;
+
             applicationEntity.Id = this._idGenerator.NewId();
-            applicationEntity.AppScret = this._encryptHelper.GenerateSalt(10);
+            applicationEntity.Account = userEntity;
+            applicationEntity.AppUserId = userEntity.Id;
+            //applicationEntity.AppScret = this._encryptHelper.GenerateSalt(10);
             await this._appRepository.InsertAsync(applicationEntity);
+            app.AppScret = pwd;
             return app;
         }
 
         public Task<ApplicationInfoDto> GetOneAsync(long id)
         {
             return this._appRepository.QueryFirstAsync(x => x.Id == id)
-                .ContinueWith(x=>this._mapper.Map<ApplicationInfoDto>(x.Result));
+                .ContinueWith(x => this._mapper.Map<ApplicationInfoDto>(x.Result));
         }
 
         public Task<ApplicationInfoDto> GetOneAsync(string code)
@@ -77,22 +99,18 @@ namespace EasyRbac.Application.Application
             return this._mapper.Map<PagingList<ApplicationInfoDto>>(rsult);
         }
 
-        public Task<string> GetAppScretAsync(long appId)
+        public async Task<string> ChangeAppSecuretAsync(long id)
         {
-            var t = new SQLinq.SQLinq<ApplicationEntity>().Where(x => x.Id == appId).Select(x => x.AppScret);
-
-            return this._appRepository.GetAppSecuret(appId);
+            var newSecuret = this._encryptHelper.GenerateSalt();
+            var appInfo = await this._appRepository.GetAppInfoEntityAsync(id);
+            appInfo.ChangeSecuret(newSecuret, this._encryptHelper);
+            await this._appRepository.ChangeAppSecuretAsync(appInfo);
+            return newSecuret;
         }
 
-        public Task EditAppScretAsync(long appId)
+        public Task<ApplicationEntity> GetAppByUserId(long userId)
         {
-            string newSecuret = this._encryptHelper.GenerateSalt(10);
-            return this._appRepository.UpdateAsync(
-                () => new ApplicationEntity
-                {
-                    AppScret = newSecuret
-                },
-                x => x.Id == appId);
+            return this._appRepository.QueryFirstAsync(x => x.AppUserId == userId);
         }
     }
 }
