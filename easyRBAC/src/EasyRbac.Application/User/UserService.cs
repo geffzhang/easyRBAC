@@ -22,12 +22,20 @@ namespace EasyRbac.Application.User
         private readonly IIdGenerator _idGenerate;
         private readonly IEncryptHelper _encryptHelper;
         private readonly IRepository<UserEntity> _userRepository;
+        private readonly IUserRoleDomainService _userRoleDomainService;
+        
         private readonly IUserResourceDomainService _userResourceDomainService;
         private IMapper _mapper;
 
         /// <summary>Initializes a new instance of the <see cref="T:System.Object"></see> class.</summary>
-        public UserService(IIdGenerator idGenerate, IEncryptHelper encryptHelper, IRepository<UserEntity> userRepository, IMapper mapper, IUserResourceDomainService userResourceDomainService)
+        public UserService(IIdGenerator idGenerate, 
+            IEncryptHelper encryptHelper, 
+            IRepository<UserEntity> userRepository, 
+            IMapper mapper,
+            IUserResourceDomainService userResourceDomainService,
+            IUserRoleDomainService userRoleDomainService)
         {
+            this._userRoleDomainService = userRoleDomainService;
             this._idGenerate = idGenerate;
             this._encryptHelper = encryptHelper;
             this._userRepository = userRepository;
@@ -35,11 +43,12 @@ namespace EasyRbac.Application.User
             this._userResourceDomainService = userResourceDomainService;
         }
 
-        public Task AddUser(CreateUserDto user)
+        public async Task<long> AddUser(CreateUserDto user)
         {
             var userEntity = UserEntity.NewUser(this._idGenerate.NewId(), user.UserName, user.Password, user.RealName,this._encryptHelper);
             userEntity.MobilePhone = user.MobilePhone;
-            return this._userRepository.InsertAsync(userEntity);
+            var changeCount = await this._userRepository.InsertAsync(userEntity);
+            return userEntity.Id;
         }
 
         public async Task ChangePwd(long userId, ChangePwd change)
@@ -75,11 +84,28 @@ namespace EasyRbac.Application.User
                  x => x.Id == userId);
         }
 
+        public Task EnableUser(long userId)
+        {
+            return this._userRepository.UpdateAsync(
+                 () => new UserEntity()
+                 {
+                     Enable = true
+                 },
+                 x => x.Id == userId);
+        }
+
         public async Task<UserInfoDto> GetUserInfo(long userId)
         {
             var users = await this._userRepository.QueryAsync(x => x.Id == userId);
             var user = users.FirstOrDefault();
-            return this._mapper.Map<UserInfoDto>(user);
+            if (user != null)
+            {
+                var dto =  this._mapper.Map<UserInfoDto>(user);
+                var roles =await this._userRoleDomainService.GetRolesAsync(user.Id);
+                dto.Roles = roles.Select(x=>x.RoleName).ToList();
+                return dto;
+            }
+            return null;
 
         }
 
@@ -105,5 +131,7 @@ namespace EasyRbac.Application.User
                 {nameof(roleResource),roleResource }
             };
         }
+
+        
     }
 }

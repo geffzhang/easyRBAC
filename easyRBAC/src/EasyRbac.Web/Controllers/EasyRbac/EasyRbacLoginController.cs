@@ -34,6 +34,7 @@ namespace EasyRbac.Web.Controllers.EasyRbac
         }
 
         [HttpGet()]
+        [AllowAnonymous]
         public async Task<string> LoginCheck(string token,string callback)
         {
             var tokenResult = await this._loginService.GetTokenEntityByTokenAsync(token);
@@ -43,16 +44,22 @@ namespace EasyRbac.Web.Controllers.EasyRbac
             }
 
             if (tokenResult.IsExpire())
-            {
+            {                
                 return string.Format("{0}({1})", callback, "{\"success\":false,\"message\":\"token is expired\"}");
             }
 
             this.Response.Cookies.Append("token",token,new CookieOptions()
             {
-                SameSite = SameSiteMode.None
+                SameSite = SameSiteMode.Lax,
             });
             
-            return string.Format("{0}({1})", callback, "{\"success\":true}");
+            return $"{callback}({{\"success\":true}})";
+        }
+
+        [HttpGet("logout")]
+        public void LogoutEasyRbac()
+        {
+            this.Response.Cookies.Delete("token");
         }
 
         [HttpGet("userMenu")]

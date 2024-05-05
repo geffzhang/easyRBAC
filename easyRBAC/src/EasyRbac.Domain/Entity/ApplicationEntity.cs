@@ -21,17 +21,23 @@ namespace EasyRbac.Domain.Entity
 
         public string Descript { get; set; }
 
-        public string CallbackUrl { get; set; }
-
-        public CallbackType? CallbackType { get; set; }
-
         [SQLinqColumn(Ignore = true)]
-        public List<AppResourceEntity> AppResouce { get; set; }
+        public List<AppResourceEntity> AppResouce { get; set; } = new List<AppResourceEntity>();
 
         public long AppUserId { get; set; }
 
         [SQLinqColumn(Ignore =true)]
         public UserEntity Account { get; set; }
+
+        [SQLinqColumn(Ignore = true)]
+        public List<ApplicationCallbackConfig> CallbackConfigs { get; set; } = new List<ApplicationCallbackConfig>();
+
+        [SQLinqColumn(Ignore = true)]
+        public List<RoleEntity> UserRole { get; set; } = new List<RoleEntity>();
+
+        public string HomePageUrl { get; set; }
+
+        public string IconUrl { get; set; }
 
         public void ChangeSecuret(string newPassword, IEncryptHelper encryptHelper)
         {

@@ -11,7 +11,7 @@
 ps:当年要是有个这种小清新多美好啊~
 
 ## Build Status
-[![Build Status](https://travis-ci.org/uliian/easyRBAC.svg?branch=master)](https://travis-ci.org/uliian/easyRBAC)
+![![构建状态](https://ynfunc.coding.net/badges/hospital-schedule-api/job/166472/build.svg)](https://ynfunc.coding.net/p/hospital-schedule-api/ci/job)
 
 ## 文档
 
@@ -29,5 +29,5 @@ ps:当年要是有个这种小清新多美好啊~
 - [x] 用户信息
 - [x] sso回调方式选择
 - [x] 后台授权、鉴权
-- [ ] Swagger支持
+- [x] Swagger支持
 - [x] SSO后系统获取用户ACL
